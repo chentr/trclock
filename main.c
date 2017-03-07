@@ -63,7 +63,14 @@ int main()
 void check_thread()
 {
 	// check all clocks's next point
+	int i;
+	time_t now = time (NULL);;   
+	struct tm *local=localtime(&now);
+	for(i=0;i<MAX_CLOCK_NUM;i++)
+	{
 		//if need alarm clock 
+		if(alarm[i].type > AL_DISABLE && (difftime(alarm[i].next_point,now ) < 5  &&  difftime(alarm[i].next_point,now ) > -5) )
+		{
 			//show alert betweent -5 to 5 second
 			//3{
 				//if it is one time clock
@@ -71,6 +78,10 @@ void check_thread()
 				//else if it is a repeat clock
 					//set alarm to next point
 			//3}
+		
+		}
+	
+	}
 		//if a clock is out of time
 			//3
 }
