@@ -1,0 +1,6 @@
+# ignore *.out
+*.out
+*.cs.files
+*.in
+*.po
+*.swp
