@@ -24,8 +24,24 @@
 #include <time.h>		
 #define MAX_TIME_STRLEN 64
 #define MAX_CLOCK_NUM 10
+#define DAY_PER_WEEK 7
+struct Week_alarm{
+	int week_day[DAY_PER_WEEK];//set 1 if this day want to be alarmed
+	int hour;
+	int min;
+	int second;
+};
+enum ALARM_TYPE{
+	AL_DISABLE,
+	AL_ONETIME,
+	AL_REPEAT,
+	AL_WEEK,
+};
 struct Alarm{
+	int type;
 	time_t next_point;//next alarm point
+	time_t repeat_time;//repeat per repeat_time. time_t == long int,means seconds.
+	struct Week_alarm week_time;//alarm in a time of a week's specific days.
 } alarm[MAX_CLOCK_NUM];
 void show_time()
 {
