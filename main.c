@@ -23,6 +23,7 @@
 #include <string.h>		
 #include <time.h>		
 #include <stdbool.h>
+#include <apr-1.0/apr_time.h>
 #define MAX_TIME_STRLEN 64
 #define MAX_CLOCK_NUM 10
 #define DAY_PER_WEEK 7
@@ -44,6 +45,7 @@ struct Alarm{
 	time_t repeat_time;//repeat per repeat_time. time_t == long int,means seconds.
 	struct Week_alarm week_time;//alarm in a time of a week's specific days.
 } alarm[MAX_CLOCK_NUM];
+/*
 void show_time()
 {
 	time_t now = time (NULL);;   
@@ -54,6 +56,7 @@ void show_time()
 	printf("Local hour is: %d\n",local->tm_hour);
 	return;
 }
+*/
 
 /*get current week day*/
 int get_wday()
@@ -65,7 +68,6 @@ int get_wday()
 
 int main()
 {
-	show_time();
 	return 0;
 }
 
@@ -136,4 +138,5 @@ void check_thread()
 			}
 		}
 	}
+	apr_sleep(1000000);
 }
