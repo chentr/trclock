@@ -22,11 +22,12 @@
 #include <stdlib.h>		
 #include <string.h>		
 #include <time.h>		
+#include <stdbool.h>
 #define MAX_TIME_STRLEN 64
 #define MAX_CLOCK_NUM 10
 #define DAY_PER_WEEK 7
 struct Week_alarm{
-	int week_day[DAY_PER_WEEK];//set 1 if this day want to be alarmed
+	bool wday[DAY_PER_WEEK];//set 1 if this day want to be alarmed
 	int hour;
 	int min;
 	int second;
@@ -54,9 +55,58 @@ void show_time()
 	return;
 }
 
+/*get current week day*/
+int get_wday()
+{
+	time_t now = time (NULL);;   
+	struct tm *local=localtime(&now);
+	return local->tm_wday;/*0-6*/
+}
+
 int main()
 {
 	show_time();
+	return 0;
+}
+
+//set to next alarm point or disable it*/
+int reset_clock(struct Alarm alarm)
+{
+	int curr_wday;
+	int j;
+	//if it is one time clock
+	if(AL_ONETIME == alarm.type)
+	{
+		//disable it
+		alarm.type = AL_DISABLE;
+	}
+	//else if it is a repeat clock
+	else if(AL_REPEAT == alarm.type)
+	{
+		//set alarm to next point
+		alarm.next_point += alarm.repeat_time;
+	}
+	//else if it is a clock by week
+	else if(AL_WEEK == alarm.type)
+	{
+		/*set alarm to next point*/
+		//get current day of week
+		curr_wday = get_wday();
+		//find next alarm day of week
+		for(j=curr_wday+1;j < DAY_PER_WEEK*2-1;j++)
+		{
+			if(true == alarm.week_time.wday[j/DAY_PER_WEEK])
+			{
+				//set next alarm
+				alarm.next_point += (j-curr_wday)*24*3600;
+			}
+		}
+	}
+	else
+	{
+		printf("alarm type error!\n");
+		return -1;
+	}
 	return 0;
 }
 
@@ -66,22 +116,24 @@ void check_thread()
 	int i;
 	time_t now = time (NULL);;   
 	struct tm *local=localtime(&now);
+	double diff;
 	for(i=0;i<MAX_CLOCK_NUM;i++)
 	{
-		//if need alarm clock 
-		if(alarm[i].type > AL_DISABLE && (difftime(alarm[i].next_point,now ) < 5  &&  difftime(alarm[i].next_point,now ) > -5) )
+		if(alarm[i].type > AL_DISABLE )
 		{
-			//show alert betweent -5 to 5 second
-			//3{
-				//if it is one time clock
-					//disable it
-				//else if it is a repeat clock
-					//set alarm to next point
-			//3}
-		
+			diff = difftime(now,alarm[i].next_point);
+			//if need alarm clock 
+			if(diff > -5 && diff < 5) 
+			{
+				//show alert betweent -5 to 5 second
+				printf("alert!\n");
+				reset_clock(alarm[i]);
+			}
+			//if a clock is out of date
+			else if(diff > 5 )
+			{
+				reset_clock(alarm[i]);
+			}
 		}
-	
 	}
-		//if a clock is out of time
-			//3
 }
