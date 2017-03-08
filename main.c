@@ -73,6 +73,7 @@ int main()
 
 //
 //<clock_id> <cmd> <time>
+//<clock_id> = 1-10
 //cmd: 0 disable , 1 one time, 2 repeat per time, 3 time by week.
 // cmd=0(disable): <time> not need
 // cmd=1(one time): <time> "yyyymmddhhmmss".
