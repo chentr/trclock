@@ -71,6 +71,18 @@ int main()
 	return 0;
 }
 
+//
+//<clock_id> <cmd> <time>
+//cmd: 0 disable , 1 one time, 2 repeat per time, 3 time by week.
+// cmd=0(disable): <time> not need
+// cmd=1(one time): <time> "yyyymmddhhmmss".
+// cmd=2(repeat per time): <time> "yyyymmddhhmmss dhhmmss",at most 9 days.
+// cmd=3(time by week): <time> "hhmmss [1234567]".
+int handle_cmd()
+{
+
+}
+
 //set to next alarm point or disable it*/
 int reset_clock(struct Alarm alarm)
 {
