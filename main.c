@@ -60,6 +60,11 @@ int main()
 	return 0;
 }
 
+void set_next(struct Alarm alarm)
+{
+
+}
+
 void check_thread()
 {
 	// check all clocks's next point
