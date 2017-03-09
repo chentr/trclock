@@ -90,7 +90,7 @@ void print_help()
     printf("type: 0 disable , 1 one time, 2 repeat per time, 3 time by week.\n");
     printf("type=0(disable): <time> not need\n");
     printf("type=1(one time): <time> = <yyyy,mm,dd,hh,mm,ss>.\n");
-    printf("type=2(repeat per time): <time> <yyyy,mm,dd,hh,mm,ss,d,hh,mm,ss>,at most 9 days.\n");
+    printf("type=2(repeat per time): <time> <yyyy,mm,dd,hh,mm,ss;d,hh,mm,ss>,at most 9 days.\n");
     printf("type=3(time by week): <time> <hhmmss,[1234567]>.\n");
     printf("--------------------------command list end-----------------------\n");
     printf("[user input]:");
@@ -104,6 +104,10 @@ void handle_cmd()
     int type;
     char time_cmd[MAX_PERLINE];
     struct tm time;
+	int day;
+	int hour;
+	int min;
+	int sec;
     fgets(cmd,MAX_PERLINE-1,stdin);
     scanf("%d %d %s\n", &clock_id, &type, time_cmd);
     if(clock_id<0 || clock_id>9 || type < AL_DISABLE ||type > AL_WEEK)
@@ -115,9 +119,12 @@ void handle_cmd()
     if(AL_ONETIME == type)
     {
         sscanf(time_cmd,"%d,%d,%d,%d,%d,%d",&(time.tm_year),&(time.tm_mon),&(time.tm_mday),&(time.tm_hour),&(time.tm_min),&(time.tm_sec));
+		alarm[clock_id].next_point=mktime(&time);
     }
 	else if(AL_REPEAT == type)
     {
+        sscanf(time_cmd,"%d,%d,%d,%d,%d,%d;%d,%d,%d,%d",&(time.tm_year),&(time.tm_mon),&(time.tm_mday),&(time.tm_hour),&(time.tm_min),&(time.tm_sec),&day,&hour,&min,&sec);
+		alarm[clock_id].next_point=mktime(&time);
     
     }
 	else if(AL_WEEK == type)
