@@ -1,6 +1,7 @@
 # ignore *.out
 *.out
-*.cs.files
+*.files
 *.in
 *.po
 *.swp
+*.vp
