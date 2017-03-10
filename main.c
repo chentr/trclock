@@ -9,6 +9,7 @@
 #include <time.h>		
 #include <stdbool.h>
 #include <apr-1.0/apr_time.h>
+#include <apr-1.0/apr_thread_proc.h>
 #define MAX_TIME_STRLEN 64
 #define MAX_CLOCK_NUM 10
 #define DAY_PER_WEEK 7
@@ -44,7 +45,7 @@ void print_alarm()
 {
     printf("--------------------------current alarms---------------------------\n");
     int i,j;
-    struct tm *p;
+	time_t repeat_time;
     for(i=0;i<MAX_CLOCK_NUM;i++)
     {
         if(AL_ONETIME == alarm[i].type)
@@ -57,8 +58,8 @@ void print_alarm()
         {
             printf("id=%d,type:repeat per duration\n",i);
             printf("next alarm time:\t%s\n",ctime(&alarm[i].next_point));
-            p=gmtime(&alarm[i].next_point);
-            printf("repeat period:\t%d day;%d:%d:%d\n",p->tm_mday,p->tm_hour, p->tm_min, p->tm_sec);
+            repeat_time = alarm[i].repeat_time ;
+            printf("repeat period:\t%ld day;%ld:%ld:%ld\n",repeat_time/60/60/24,(repeat_time/60/60)%24,(repeat_time/60)%60,repeat_time%60);
             printf("\n");
         }
         else if(AL_WEEK == alarm[i].type)
@@ -99,17 +100,19 @@ void print_help()
 
 void handle_cmd()
 {
-    char cmd[MAX_PERLINE];
-    int clock_id;
-    int type;
-    char time_cmd[MAX_PERLINE];
-    struct tm time;
-	int day;
-	int hour;
-	int min;
-	int sec;
+    char cmd[MAX_PERLINE]="";
+    int clock_id=-1;
+    int type=-1;
+    char time_cmd[MAX_PERLINE]="";
+    struct tm time; /*tm_mon=0-11, tm_year=year+1900*/
+	int day=0;
+	int hour=0;
+	int min=0;
+	int sec=0;
+    memset(&time,0,sizeof(time));
     fgets(cmd,MAX_PERLINE-1,stdin);
-    scanf("%d %d %s\n", &clock_id, &type, time_cmd);
+    sscanf(cmd,"%d %d %s", &clock_id, &type, time_cmd);
+    printf("%d %d %s\n", clock_id, type, time_cmd);
     if(clock_id<0 || clock_id>9 || type < AL_DISABLE ||type > AL_WEEK)
     {
         printf("cmd error,wrong clock_id or type\n");
@@ -119,19 +122,24 @@ void handle_cmd()
     if(AL_ONETIME == type)
     {
         sscanf(time_cmd,"%d,%d,%d,%d,%d,%d",&(time.tm_year),&(time.tm_mon),&(time.tm_mday),&(time.tm_hour),&(time.tm_min),&(time.tm_sec));
+        time.tm_mon = time.tm_mon - 1;
+        time.tm_year = time.tm_year - 1900;
 		alarm[clock_id].next_point=mktime(&time);
     }
 	else if(AL_REPEAT == type)
     {
         sscanf(time_cmd,"%d,%d,%d,%d,%d,%d;%d,%d,%d,%d",&(time.tm_year),&(time.tm_mon),&(time.tm_mday),&(time.tm_hour),&(time.tm_min),&(time.tm_sec),&day,&hour,&min,&sec);
+        time.tm_mon = time.tm_mon - 1; 
+        time.tm_year = time.tm_year - 1900;
 		alarm[clock_id].next_point=mktime(&time);
-    
+		alarm[clock_id].repeat_time=((day*24+hour)*60+min)*60+sec;
+        printf("repeat time %ld\n",alarm[clock_id].repeat_time);
     }
 	else if(AL_WEEK == type)
     {
 
     }
-	
+
 
 }
 
@@ -146,24 +154,24 @@ int user_inter()
 }
 
 //set to next alarm point or disable it*/
-int reset_clock(struct Alarm alarm)
+int reset_clock(struct Alarm* alarm)
 {
 	int curr_wday;
 	int j;
 	//if it is one time clock
-	if(AL_ONETIME == alarm.type)
+	if(AL_ONETIME == alarm->type)
 	{
 		//disable it
-		alarm.type = AL_DISABLE;
+		alarm->type = AL_DISABLE;
 	}
 	//else if it is a repeat clock
-	else if(AL_REPEAT == alarm.type)
+	else if(AL_REPEAT == alarm->type)
 	{
 		//set alarm to next point
-		alarm.next_point += alarm.repeat_time;
+		alarm->next_point += alarm->repeat_time;
 	}
 	//else if it is a clock by week
-	else if(AL_WEEK == alarm.type)
+	else if(AL_WEEK == alarm->type)
 	{
 		/*set alarm to next point*/
 		//get current day of week
@@ -171,10 +179,10 @@ int reset_clock(struct Alarm alarm)
 		//find next alarm day of week
 		for(j=curr_wday+1;j < DAY_PER_WEEK*2-1;j++)
 		{
-			if(true == alarm.week_time.wday[j/DAY_PER_WEEK])
+			if(true == alarm->week_time.wday[j/DAY_PER_WEEK])
 			{
 				//set next alarm
-				alarm.next_point += (j-curr_wday)*24*3600;
+				alarm->next_point += (j-curr_wday)*24*3600;
 			}
 		}
 	}
@@ -186,37 +194,58 @@ int reset_clock(struct Alarm alarm)
 	return 0;
 }
 
-void check_thread()
+apr_thread_start_t check_thread(struct apr_thread_t *new_thread,void *x_void_ptr)
 {
 	// check all clocks's next point
 	int i;
-	time_t now = time (NULL);;   
-	struct tm *local=localtime(&now);
+	time_t now ;   
+	struct tm *local;
 	double diff;
-	for(i=0;i<MAX_CLOCK_NUM;i++)
-	{
-		if(alarm[i].type > AL_DISABLE )
-		{
-			diff = difftime(now,alarm[i].next_point);
-			//if need alarm clock 
-			if(diff > -5 && diff < 5) 
-			{
-				//show alert betweent -5 to 5 second
-				printf("alert!\n");
-				reset_clock(alarm[i]);
-			}
-			//if a clock is out of date
-			else if(diff > 5 )
-			{
-				reset_clock(alarm[i]);
-			}
-		}
-	}
-	apr_sleep(1000000);
+    while(1)
+    {
+        now = time (NULL);   
+        local=localtime(&now);
+        for(i=0;i<MAX_CLOCK_NUM;i++)
+        {
+            if(alarm[i].type > AL_DISABLE )
+            {
+                diff = difftime(now,alarm[i].next_point);
+                //if need alarm clock 
+                if(diff > -5 && diff < 5) 
+                {
+                    //show alert betweent -5 to 5 second
+                    printf("\n================alert! alarm:[%d]====================\n",i);
+                }
+                //if a clock is out of date
+                else if(diff > 5)
+                {
+                    reset_clock(&alarm[i]);
+                }
+            }
+        }
+        apr_sleep(1000000);
+    }
+    return NULL;
 }
 
 int main()
 {
+    apr_thread_t *new_thread;
+    apr_status_t ret;//=   apr_threadattr_create (&new_attr, NULL);
+    apr_pool_initialize();
+    apr_pool_t *pool;
+    if (apr_pool_create(&pool, NULL) <0 ) {
+        printf("Could not allocate pool\n");
+        return -1;
+    }
+    /* create a second thread which executes inc_x(&x) */
+    if(ret = apr_thread_create(&new_thread, NULL, check_thread, NULL, pool)) {
+        fprintf(stderr, "Error creating thread\n");
+        return 1;
+    }
     user_inter();
 	return 0;
 }
+
+
+
